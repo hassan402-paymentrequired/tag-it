@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 import { getProduct, updateProductStatus } from '@/api/products';
 import { getErrorMessage } from '@/api/client';
 import { AdminLayout } from '@/components/layout/admin-layout';
@@ -32,7 +33,6 @@ export function ProductDetailPage() {
   const queryClient = useQueryClient();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [actionError, setActionError] = useState('');
 
   const productQuery = useQuery({
     queryKey: queryKeys.products.detail(id),
@@ -45,13 +45,21 @@ export function ProductDetailPage() {
       status: 'approved' | 'rejected' | 'pending';
       rejectionReason?: string;
     }) => updateProductStatus(id, payload),
-    onSuccess: () => {
+    onSuccess: (response, variables) => {
+      const fallback =
+        variables.status === 'approved'
+          ? 'Product approved'
+          : variables.status === 'rejected'
+            ? 'Product rejected'
+            : 'Product marked as pending';
+      toast.success(response.message || fallback);
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       setRejectOpen(false);
       setRejectionReason('');
-      setActionError('');
     },
-    onError: (error) => setActionError(getErrorMessage(error)),
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
+    },
   });
 
   const product = productQuery.data?.data;
@@ -161,9 +169,6 @@ export function ProductDetailPage() {
 
             <AdminDetailSummaryCard title="Verification actions">
               <div className="space-y-3">
-                {actionError ? (
-                  <p className="text-sm text-destructive">{actionError}</p>
-                ) : null}
                 <Button
                   className="w-full"
                   disabled={

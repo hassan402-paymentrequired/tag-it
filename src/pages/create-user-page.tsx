@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { createUser } from '@/api/users';
 import { getErrorMessage } from '@/api/client';
@@ -40,7 +40,6 @@ type CreateUserForm = z.infer<typeof createUserSchema>;
 
 export function CreateUserPage() {
   const queryClient = useQueryClient();
-  const [successMessage, setSuccessMessage] = useState('');
 
   const {
     register,
@@ -58,7 +57,7 @@ export function CreateUserPage() {
   const mutation = useMutation({
     mutationFn: createUser,
     onSuccess: (response) => {
-      setSuccessMessage(response.message);
+      toast.success(response.message || 'User created successfully');
       addKnownUser(response.data);
       queryClient.invalidateQueries({ queryKey: queryKeys.users.verifiers });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
@@ -69,6 +68,9 @@ export function CreateUserPage() {
         lastName: '',
         password: '',
       });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
     },
   });
 
@@ -92,10 +94,7 @@ export function CreateUserPage() {
           className="max-w-2xl"
         >
           <form
-            onSubmit={handleSubmit((values) => {
-              setSuccessMessage('');
-              mutation.mutate(values);
-            })}
+            onSubmit={handleSubmit((values) => mutation.mutate(values))}
             className="grid max-w-xl gap-5"
           >
             <FormField label="Email" htmlFor="email" error={errors.email?.message}>
@@ -143,15 +142,6 @@ export function CreateUserPage() {
             >
               <Input id="password" type="password" {...register('password')} />
             </FormField>
-
-            {mutation.isError ? (
-              <p className="text-sm text-destructive">
-                {getErrorMessage(mutation.error)}
-              </p>
-            ) : null}
-            {successMessage ? (
-              <p className="text-sm text-success">{successMessage}</p>
-            ) : null}
 
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Creating…' : 'Create user'}

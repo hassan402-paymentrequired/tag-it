@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { z } from 'zod';
 import { login } from '@/api/auth';
 import { getErrorMessage } from '@/api/client';
@@ -37,7 +38,11 @@ export function LoginPage() {
     mutationFn: login,
     onSuccess: (response) => {
       setAuth(response.data.token, response.data.user);
+      toast.success(response.message || 'Signed in successfully');
       navigate('/');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error));
     },
   });
 
@@ -105,12 +110,6 @@ export function LoginPage() {
                 </p>
               ) : null}
             </div>
-
-            {mutation.isError ? (
-              <p className="text-sm text-destructive">
-                {getErrorMessage(mutation.error)}
-              </p>
-            ) : null}
 
             <button
               type="submit"

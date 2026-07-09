@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { assignRequesters, unassignRequesters } from '@/api/users';
 import { getErrorMessage } from '@/api/client';
 import { AdminLayout } from '@/components/layout/admin-layout';
@@ -26,8 +27,6 @@ export function AssignRequestersPage() {
   const [selectedRequesterIds, setSelectedRequesterIds] = useState<string[]>(
     [],
   );
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
 
   const { requesters, verifiers, isLoading, getAssignedVerifier } =
     useRequesterDirectory();
@@ -40,38 +39,34 @@ export function AssignRequestersPage() {
   const assignMutation = useMutation({
     mutationFn: assignRequesters,
     onSuccess: (response) => {
-      setMessage(response.message);
-      setError('');
+      toast.success(response.message || 'Requesters assigned successfully');
       setSelectedRequesterIds([]);
       invalidate();
     },
     onError: (err) => {
-      setError(getErrorMessage(err));
-      setMessage('');
+      toast.error(getErrorMessage(err));
     },
   });
 
   const unassignMutation = useMutation({
     mutationFn: unassignRequesters,
     onSuccess: (response) => {
-      setMessage(response.message);
-      setError('');
+      toast.success(response.message || 'Requesters unassigned successfully');
       setSelectedRequesterIds([]);
       invalidate();
     },
     onError: (err) => {
-      setError(getErrorMessage(err));
-      setMessage('');
+      toast.error(getErrorMessage(err));
     },
   });
 
   const handleAssign = () => {
     if (!verifierId) {
-      setError('Select a verifier first');
+      toast.error('Select a verifier first');
       return;
     }
     if (!selectedRequesterIds.length) {
-      setError('Select at least one requester');
+      toast.error('Select at least one requester');
       return;
     }
     assignMutation.mutate({ verifierId, requesterIds: selectedRequesterIds });
@@ -79,7 +74,7 @@ export function AssignRequestersPage() {
 
   const handleUnassign = () => {
     if (!selectedRequesterIds.length) {
-      setError('Select at least one requester');
+      toast.error('Select at least one requester');
       return;
     }
     unassignMutation.mutate({
@@ -137,9 +132,6 @@ export function AssignRequestersPage() {
                   />
                 )}
               </FormField>
-
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              {message ? <p className="text-sm text-success">{message}</p> : null}
 
               <div className="flex flex-wrap gap-2">
                 <Button onClick={handleAssign} disabled={assignMutation.isPending}>
