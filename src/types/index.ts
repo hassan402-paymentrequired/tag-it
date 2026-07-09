@@ -87,6 +87,22 @@ export interface AssignRequestersPayload {
   requesterIds: string[];
 }
 
+export interface UnassignRequestersPayload {
+  requesterIds: string[];
+}
+
+export interface UpdateUserPayload {
+  firstName?: string;
+  lastName?: string;
+  role?: UserRole;
+  isSuspended?: boolean;
+}
+
+export interface UserListParams {
+  role?: UserRole;
+  search?: string;
+}
+
 export interface UpdateProductStatusPayload {
   status: ProductStatus;
   rejectionReason?: string;

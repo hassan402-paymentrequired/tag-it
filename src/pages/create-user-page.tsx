@@ -60,6 +60,7 @@ export function CreateUserPage() {
       toast.success(response.message || 'User created successfully');
       addKnownUser(response.data);
       queryClient.invalidateQueries({ queryKey: queryKeys.users.verifiers });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       reset({
         role: 'REQUESTER',

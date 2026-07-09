@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { normalizeUserId } from '@/lib/user-id';
 import type { User } from '@/types';
 
 type Props = {
@@ -16,6 +17,10 @@ export function RequesterCheckboxList({
   getAssignedVerifier,
   emptyMessage = 'No requesters found. Create requester accounts first.',
 }: Props) {
+  const validRequesters = requesters.filter((requester) =>
+    normalizeUserId(requester.id),
+  );
+
   const toggle = (id: string) => {
     if (selectedIds.includes(id)) {
       onChange(selectedIds.filter((entry) => entry !== id));
@@ -24,7 +29,7 @@ export function RequesterCheckboxList({
     onChange([...selectedIds, id]);
   };
 
-  if (!requesters.length) {
+  if (!validRequesters.length) {
     return (
       <p className="rounded-lg border border-dashed border-sidebar-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
         {emptyMessage}
@@ -42,7 +47,7 @@ export function RequesterCheckboxList({
           <button
             type="button"
             className="text-xs text-muted-foreground transition hover:text-foreground"
-            onClick={() => onChange(requesters.map((user) => user.id))}
+            onClick={() => onChange(validRequesters.map((user) => user.id))}
           >
             Select all
           </button>
@@ -56,7 +61,7 @@ export function RequesterCheckboxList({
         </div>
       </div>
       <ul className="max-h-72 divide-y divide-sidebar-border/70 overflow-y-auto">
-        {requesters.map((requester) => {
+        {validRequesters.map((requester) => {
           const assignedVerifier = getAssignedVerifier?.(requester.id);
           const checked = selectedIds.includes(requester.id);
 

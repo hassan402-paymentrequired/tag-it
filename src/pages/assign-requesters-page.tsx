@@ -33,6 +33,7 @@ export function AssignRequestersPage() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.users.verifiers });
+    queryClient.invalidateQueries({ queryKey: queryKeys.users.all() });
     queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
   };
 
@@ -78,7 +79,6 @@ export function AssignRequestersPage() {
       return;
     }
     unassignMutation.mutate({
-      verifierId: verifierId || selectedRequesterIds[0],
       requesterIds: selectedRequesterIds,
     });
   };
