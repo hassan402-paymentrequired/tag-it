@@ -8,10 +8,23 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getPortalLabel, isVerifier } from '@/lib/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 
-const navGroups = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+};
+
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const adminNavGroups: NavGroup[] = [
   {
     label: 'Platform',
     items: [
@@ -29,9 +42,21 @@ const navGroups = [
   },
 ];
 
-export function AdminSidebar() {
+const verifierNavGroups: NavGroup[] = [
+  {
+    label: 'Verification',
+    items: [
+      { to: '/', label: 'Your analytics', icon: LayoutDashboard, end: true },
+      { to: '/products', label: 'My queue', icon: Package },
+      { to: '/requesters', label: 'Assigned requesters', icon: Users },
+    ],
+  },
+];
+
+export function PortalSidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const navGroups = isVerifier(user) ? verifierNavGroups : adminNavGroups;
 
   const handleLogout = () => {
     logout();
@@ -43,7 +68,7 @@ export function AdminSidebar() {
       <div className="flex h-16 items-center border-b border-sidebar-border/70 px-5">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-muted-foreground">
-            Admin portal
+            {getPortalLabel(user)}
           </p>
           <p className="font-serif text-lg font-medium tracking-wide">
             Tag-It
@@ -96,3 +121,6 @@ export function AdminSidebar() {
     </aside>
   );
 }
+
+// Backward-compatible export for existing imports
+export { PortalSidebar as AdminSidebar };

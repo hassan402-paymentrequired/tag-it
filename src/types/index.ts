@@ -91,6 +91,17 @@ export interface UnassignRequestersPayload {
   requesterIds: string[];
 }
 
+export interface RequesterProductStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+export interface RequesterWithStats extends User {
+  stats: RequesterProductStats;
+}
+
 export interface UpdateUserPayload {
   firstName?: string;
   lastName?: string;

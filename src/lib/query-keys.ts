@@ -9,5 +9,7 @@ export const queryKeys = {
     all: (params?: Record<string, string | undefined>) =>
       ['users', 'list', params ?? {}] as const,
     verifiers: ['users', 'verifiers'] as const,
+    me: ['users', 'me'] as const,
+    myRequesters: ['users', 'my-requesters'] as const,
   },
 };

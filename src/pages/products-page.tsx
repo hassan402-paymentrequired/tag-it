@@ -20,11 +20,15 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys';
 import { formatDate } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
+import { isVerifier } from '@/lib/auth';
 import type { ProductStatus } from '@/types';
 
 const PAGE_SIZE = 10;
 
 export function ProductsPage() {
+  const user = useAuthStore((state) => state.user);
+  const verifierView = isVerifier(user);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(
     searchParams.get('search') ?? '',
@@ -75,8 +79,12 @@ export function ProductsPage() {
       <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4 md:p-6">
         <AdminPageHeader
           eyebrow="Verification"
-          title="Products"
-          description="Scan the full catalog — requester, verifier, status, and asset details at a glance."
+          title={verifierView ? 'My queue' : 'Products'}
+          description={
+            verifierView
+              ? 'Products assigned to you for verification — filter by status or search.'
+              : 'Scan the full catalog — requester, verifier, status, and asset details at a glance.'
+          }
         />
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -127,8 +135,12 @@ export function ProductsPage() {
           <AdminEmptyState
             className="flex-1 py-16"
             icon={Package}
-            title="No products yet"
-            description="Tagged assets will appear here once requesters submit them for verification."
+            title={verifierView ? 'No assigned products' : 'No products yet'}
+            description={
+              verifierView
+                ? 'Products assigned to you will appear here once requesters submit them.'
+                : 'Tagged assets will appear here once requesters submit them for verification.'
+            }
           />
         ) : (
           <div className="overflow-hidden rounded-xl border border-sidebar-border/70">
@@ -137,7 +149,9 @@ export function ProductsPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Product</th>
                   <th className="px-4 py-3 font-medium">Requester</th>
-                  <th className="px-4 py-3 font-medium">Verifier</th>
+                  {!verifierView ? (
+                    <th className="px-4 py-3 font-medium">Verifier</th>
+                  ) : null}
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Created</th>
                   <th className="px-4 py-3 font-medium" />
@@ -178,9 +192,11 @@ export function ProductsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {product.user?.firstName} {product.user?.lastName}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {product.verifier?.firstName} {product.verifier?.lastName}
-                    </td>
+                    {!verifierView ? (
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {product.verifier?.firstName} {product.verifier?.lastName}
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3">
                       <ProductStatusBadge status={product.status} />
                     </td>

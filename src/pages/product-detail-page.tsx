@@ -27,10 +27,15 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys';
 import { formatDate } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
+import { isVerifier } from '@/lib/auth';
 
 export function ProductDetailPage() {
   const { id = '' } = useParams();
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const verifierView = isVerifier(user);
+  const canVerify = verifierView || user?.role === 'ADMIN';
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
@@ -114,10 +119,14 @@ export function ProductDetailPage() {
                         'Requester',
                         `${product.user?.firstName} ${product.user?.lastName}`,
                       ],
-                      [
-                        'Verifier',
-                        `${product.verifier?.firstName} ${product.verifier?.lastName}`,
-                      ],
+                      ...(!verifierView
+                        ? [
+                            [
+                              'Verifier',
+                              `${product.verifier?.firstName} ${product.verifier?.lastName}`,
+                            ] as const,
+                          ]
+                        : []),
                       ['Created', formatDate(product.createdAt)],
                     ].map(([label, value]) => (
                       <div key={label}>
@@ -138,14 +147,16 @@ export function ProductDetailPage() {
                   ) : null}
                 </AdminDetailSection>
 
-                <AdminPanel
-                  title="Edit product"
-                  description="Update asset details after submission."
-                >
-                  <Button variant="outline" disabled>
-                    Edit asset details
-                  </Button>
-                </AdminPanel>
+                {!verifierView ? (
+                  <AdminPanel
+                    title="Edit product"
+                    description="Update asset details after submission."
+                  >
+                    <Button variant="outline" disabled>
+                      Edit asset details
+                    </Button>
+                  </AdminPanel>
+                ) : null}
               </>
             ) : null}
           </div>
@@ -167,37 +178,39 @@ export function ProductDetailPage() {
               </div>
             </AdminDetailSection>
 
-            <AdminDetailSummaryCard title="Verification actions">
-              <div className="space-y-3">
-                <Button
-                  className="w-full"
-                  disabled={
-                    statusMutation.isPending || product?.status === 'approved'
-                  }
-                  onClick={() => statusMutation.mutate({ status: 'approved' })}
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={statusMutation.isPending}
-                  onClick={() => setRejectOpen(true)}
-                >
-                  Reject
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  disabled={
-                    statusMutation.isPending || product?.status === 'pending'
-                  }
-                  onClick={() => statusMutation.mutate({ status: 'pending' })}
-                >
-                  Mark as pending
-                </Button>
-              </div>
-            </AdminDetailSummaryCard>
+            {canVerify ? (
+              <AdminDetailSummaryCard title="Verification actions">
+                <div className="space-y-3">
+                  <Button
+                    className="w-full"
+                    disabled={
+                      statusMutation.isPending || product?.status === 'approved'
+                    }
+                    onClick={() => statusMutation.mutate({ status: 'approved' })}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={statusMutation.isPending}
+                    onClick={() => setRejectOpen(true)}
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full"
+                    disabled={
+                      statusMutation.isPending || product?.status === 'pending'
+                    }
+                    onClick={() => statusMutation.mutate({ status: 'pending' })}
+                  >
+                    Mark as pending
+                  </Button>
+                </div>
+              </AdminDetailSummaryCard>
+            ) : null}
           </div>
         </div>
       </div>

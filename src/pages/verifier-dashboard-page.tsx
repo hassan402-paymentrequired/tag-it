@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getProducts } from '@/api/products';
-import { getVerifiers } from '@/api/users';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import {
   AdminPageHeader,
@@ -13,14 +12,13 @@ import { StatusBreakdown } from '@/components/admin/status-breakdown';
 import { ProductStatusBadge } from '@/components/products/product-status-badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuthStore } from '@/stores/auth-store';
 import { queryKeys } from '@/lib/query-keys';
 import { formatDate } from '@/lib/utils';
+import type { Product } from '@/types';
 
-export function DashboardPage() {
-  const allQuery = useQuery({
-    queryKey: queryKeys.products.list({ currentPage: '1', pageSize: '1' }),
-    queryFn: () => getProducts({ currentPage: '1', pageSize: '1' }),
-  });
+export function VerifierDashboardPage() {
+  const user = useAuthStore((state) => state.user);
 
   const pendingQuery = useQuery({
     queryKey: queryKeys.products.list({
@@ -62,126 +60,140 @@ export function DashboardPage() {
       getProducts({ currentPage: '1', pageSize: '5', status: 'pending' }),
   });
 
-  const verifiersQuery = useQuery({
-    queryKey: queryKeys.users.verifiers,
-    queryFn: getVerifiers,
+  const recentApprovedQuery = useQuery({
+    queryKey: queryKeys.products.list({
+      currentPage: '1',
+      pageSize: '5',
+      status: 'approved',
+    }),
+    queryFn: () =>
+      getProducts({ currentPage: '1', pageSize: '5', status: 'approved' }),
   });
 
-  const total = allQuery.data?.data.pagination.total ?? 0;
+  const recentRejectedQuery = useQuery({
+    queryKey: queryKeys.products.list({
+      currentPage: '1',
+      pageSize: '5',
+      status: 'rejected',
+    }),
+    queryFn: () =>
+      getProducts({ currentPage: '1', pageSize: '5', status: 'rejected' }),
+  });
+
   const pending = pendingQuery.data?.data.pagination.total ?? 0;
   const approved = approvedQuery.data?.data.pagination.total ?? 0;
   const rejected = rejectedQuery.data?.data.pagination.total ?? 0;
-  const verifiers = verifiersQuery.data?.data ?? [];
+  const decisionsMade = approved + rejected;
   const recentPending = recentPendingQuery.data?.data.data ?? [];
 
   const approvalRate = useMemo(() => {
-    const reviewed = approved + rejected;
-    if (!reviewed) return '—';
-    return `${Math.round((approved / reviewed) * 100)}%`;
-  }, [approved, rejected]);
+    if (!decisionsMade) return '—';
+    return `${Math.round((approved / decisionsMade) * 100)}%`;
+  }, [approved, decisionsMade]);
 
-  const assignedRequesters = verifiers.reduce(
-    (sum, verifier) => sum + (verifier.requesters?.length ?? 0),
-    0,
-  );
+  const rejectionRate = useMemo(() => {
+    if (!decisionsMade) return '—';
+    return `${Math.round((rejected / decisionsMade) * 100)}%`;
+  }, [rejected, decisionsMade]);
+
+  const recentDecisions = useMemo(() => {
+    const approvedItems = recentApprovedQuery.data?.data.data ?? [];
+    const rejectedItems = recentRejectedQuery.data?.data.data ?? [];
+
+    return [...approvedItems, ...rejectedItems]
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
+      .slice(0, 5);
+  }, [recentApprovedQuery.data, recentRejectedQuery.data]);
+
+  const decisionsLoading =
+    recentApprovedQuery.isLoading || recentRejectedQuery.isLoading;
 
   return (
-    <AdminLayout breadcrumbs={[{ title: 'Dashboard' }]}>
+    <AdminLayout breadcrumbs={[{ title: 'Your analytics' }]}>
       <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto p-4 md:p-6">
         <AdminPageHeader
-          eyebrow="System"
-          title="Dashboard"
-          description="Organisation-wide product verification activity and team overview."
+          eyebrow="Personal"
+          title={`Welcome back, ${user?.firstName ?? 'Verifier'}`}
+          description="Your verification performance — queue, decisions, and outcomes assigned to you."
           action={
             pending > 0 ? (
               <Button variant="outline" asChild>
-                <Link to="/products?status=pending">Review pending ({pending})</Link>
+                <Link to="/products?status=pending">
+                  Review your pending ({pending})
+                </Link>
               </Button>
             ) : (
               <Button variant="outline" asChild>
-                <Link to="/products">View products</Link>
+                <Link to="/products">View your queue</Link>
               </Button>
             )
           }
         />
 
         <div>
-          <AdminSectionTitle>Overview</AdminSectionTitle>
+          <AdminSectionTitle>Your performance</AdminSectionTitle>
           <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <AdminStatCard
-              label="Total products"
-              value={total}
-              href="/products"
-            />
-            <AdminStatCard
-              label="Pending review"
+              label="Awaiting your review"
               value={pending}
               href="/products?status=pending"
-              hint={pending ? 'Needs admin or verifier action' : 'Queue is clear'}
+              hint={pending ? 'Products needing your decision' : 'Your queue is clear'}
             />
             <AdminStatCard
-              label="Approval rate"
+              label="Decisions you've made"
+              value={decisionsMade}
+              hint={`${approved} approved · ${rejected} rejected`}
+            />
+            <AdminStatCard
+              label="Your approval rate"
               value={approvalRate}
-              hint="Approved vs reviewed (approved + rejected)"
+              hint="Of products you've reviewed"
             />
             <AdminStatCard
-              label="Active verifiers"
-              value={verifiers.length}
-              href="/users/assign"
-              hint={`${assignedRequesters} requesters assigned`}
+              label="Your rejection rate"
+              value={rejectionRate}
+              hint="Of products you've reviewed"
             />
           </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <StatusBreakdown
-            title="Products by status"
+            title="Your queue by status"
             rows={[
-              { value: 'pending', label: 'Pending', count: pending },
-              { value: 'approved', label: 'Approved', count: approved },
-              { value: 'rejected', label: 'Rejected', count: rejected },
+              { value: 'pending', label: 'Awaiting you', count: pending },
+              { value: 'approved', label: 'Approved by you', count: approved },
+              { value: 'rejected', label: 'Rejected by you', count: rejected },
             ]}
           />
 
           <div className="rounded-xl border border-sidebar-border/70 bg-card">
             <div className="flex items-center justify-between gap-3 border-b border-sidebar-border/70 px-4 py-3">
               <h2 className="text-sm font-medium uppercase tracking-[0.15em]">
-                Verifier workload
+                Your recent decisions
               </h2>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/users/assign">Manage</Link>
+                <Link to="/products">View queue</Link>
               </Button>
             </div>
-            {verifiersQuery.isLoading ? (
+            {decisionsLoading ? (
               <div className="space-y-3 p-4">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <Skeleton key={index} className="h-10 w-full" />
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <Skeleton key={index} className="h-12 w-full" />
                 ))}
               </div>
-            ) : verifiers.length === 0 ? (
+            ) : recentDecisions.length === 0 ? (
               <p className="px-4 py-8 text-sm text-muted-foreground">
-                No verifiers yet. Create verifier accounts to start assigning
-                requesters.
+                You haven't reviewed any products yet. Pending items will appear
+                here once you approve or reject them.
               </p>
             ) : (
               <ul className="divide-y divide-sidebar-border/70">
-                {verifiers.map((verifier) => (
-                  <li
-                    key={verifier.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium">
-                        {verifier.firstName} {verifier.lastName}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {verifier.email}
-                      </p>
-                    </div>
-                    <p className="shrink-0 tabular-nums text-muted-foreground">
-                      {verifier.requesters?.length ?? 0} requesters
-                    </p>
-                  </li>
+                {recentDecisions.map((product) => (
+                  <DecisionRow key={product.id} product={product} />
                 ))}
               </ul>
             )}
@@ -191,7 +203,7 @@ export function DashboardPage() {
         <div className="rounded-xl border border-sidebar-border/70 bg-card">
           <div className="flex items-center justify-between gap-3 border-b border-sidebar-border/70 px-4 py-3">
             <h2 className="text-sm font-medium uppercase tracking-[0.15em]">
-              Pending review
+              Needs your action
             </h2>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/products?status=pending">View all</Link>
@@ -205,7 +217,7 @@ export function DashboardPage() {
             </div>
           ) : recentPending.length === 0 ? (
             <p className="px-4 py-8 text-sm text-muted-foreground">
-              No products waiting for review right now.
+              Nothing waiting on you right now. Great work.
             </p>
           ) : (
             <ul className="divide-y divide-sidebar-border/70">
@@ -225,15 +237,10 @@ export function DashboardPage() {
                         {product.location}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
-                        Submitted by {product.user?.firstName}{' '}
-                        {product.user?.lastName} ·{' '}
-                        {formatDate(product.createdAt)}
+                        From {product.user?.firstName} {product.user?.lastName}{' '}
+                        · {formatDate(product.createdAt)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      Verifier: {product.verifier?.firstName}{' '}
-                      {product.verifier?.lastName}
-                    </span>
                   </Link>
                 </li>
               ))}
@@ -242,5 +249,30 @@ export function DashboardPage() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+function DecisionRow({ product }: { product: Product }) {
+  return (
+    <li>
+      <Link
+        to={`/products/${product.id}`}
+        className="flex flex-col gap-2 px-4 py-3 transition hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">{product.tagId}</span>
+            <ProductStatusBadge status={product.status} />
+          </div>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+            {product.brand} · {product.assetType}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            From {product.user?.firstName} {product.user?.lastName} · Updated{' '}
+            {formatDate(product.updatedAt)}
+          </p>
+        </div>
+      </Link>
+    </li>
   );
 }

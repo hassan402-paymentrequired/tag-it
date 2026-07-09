@@ -51,13 +51,13 @@ export function LoginPage() {
       <div className="w-full max-w-[420px]">
         <div className="mb-8 text-center">
           <p className="text-[10px] uppercase tracking-[0.25em] text-[#6b6b6b]">
-            Admin portal
+            Tag-It portal
           </p>
           <h1 className="mt-2 font-serif text-2xl font-medium text-[#060606]">
             Sign in to Tag-It
           </h1>
           <p className="mt-2 text-sm text-[#6b6b6b]">
-            Manage users, assignments, and product verification.
+            Admin and verifier access for product verification.
           </p>
         </div>
 

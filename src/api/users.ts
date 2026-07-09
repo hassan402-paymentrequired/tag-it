@@ -4,6 +4,7 @@ import type {
   ApiResponse,
   AssignRequestersPayload,
   CreateUserPayload,
+  RequesterWithStats,
   UnassignRequestersPayload,
   UpdateUserPayload,
   User,
@@ -61,6 +62,18 @@ export async function deleteUser(id: string) {
 
 export async function getVerifiers() {
   const { data } = await apiClient.get<ApiResponse<User[]>>('/user/verifiers');
+  return data;
+}
+
+export async function getMe() {
+  const { data } = await apiClient.get<ApiResponse<User>>('/user/me');
+  return data;
+}
+
+export async function getMyRequesters() {
+  const { data } = await apiClient.get<ApiResponse<RequesterWithStats[]>>(
+    '/user/my-requesters',
+  );
   return data;
 }
 
