@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ImageIcon, Package } from 'lucide-react';
 import { getProducts } from '@/api/products';
+import { downloadProductsExport } from '@/api/export';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { AdminEmptyState } from '@/components/admin/admin-empty-state';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { AdminPagination } from '@/components/admin/admin-pagination';
+import { ExportDownloadButtons } from '@/components/admin/export-download-button';
 import { ProductStatusBadge } from '@/components/products/product-status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { queryKeys } from '@/lib/query-keys';
 import { formatDate } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
-import { isVerifier } from '@/lib/auth';
+import { isAdmin, isVerifier } from '@/lib/auth';
 import type { ProductStatus } from '@/types';
 
 const PAGE_SIZE = 10;
@@ -29,6 +31,7 @@ const PAGE_SIZE = 10;
 export function ProductsPage() {
   const user = useAuthStore((state) => state.user);
   const verifierView = isVerifier(user);
+  const adminView = isAdmin(user);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(
     searchParams.get('search') ?? '',
@@ -84,6 +87,21 @@ export function ProductsPage() {
             verifierView
               ? 'Products assigned to you for verification — filter by status or search.'
               : 'Scan the full catalog — requester, verifier, status, and asset details at a glance.'
+          }
+          action={
+            adminView ? (
+              <ExportDownloadButtons
+                csvLabel="Download CSV"
+                pdfLabel="Download PDF"
+                onDownload={(format) =>
+                  downloadProductsExport({
+                    format,
+                    ...(search ? { search } : {}),
+                    ...(status ? { status } : {}),
+                  })
+                }
+              />
+            ) : undefined
           }
         />
 

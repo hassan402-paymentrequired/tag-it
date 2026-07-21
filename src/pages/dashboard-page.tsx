@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getProducts } from '@/api/products';
+import { downloadVisibilityExport } from '@/api/export';
 import { getVerifiers } from '@/api/users';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import {
@@ -9,6 +10,7 @@ import {
   AdminSectionTitle,
 } from '@/components/admin/admin-page-header';
 import { AdminStatCard } from '@/components/admin/admin-stat-card';
+import { ExportDownloadButtons } from '@/components/admin/export-download-button';
 import { StatusBreakdown } from '@/components/admin/status-breakdown';
 import { ProductStatusBadge } from '@/components/products/product-status-badge';
 import { Button } from '@/components/ui/button';
@@ -93,15 +95,24 @@ export function DashboardPage() {
           title="Dashboard"
           description="Organisation-wide product verification activity and team overview."
           action={
-            pending > 0 ? (
-              <Button variant="outline" asChild>
-                <Link to="/products?status=pending">Review pending ({pending})</Link>
-              </Button>
-            ) : (
-              <Button variant="outline" asChild>
-                <Link to="/products">View products</Link>
-              </Button>
-            )
+            <div className="flex flex-wrap items-center gap-2">
+              <ExportDownloadButtons
+                csvLabel="Export CSV"
+                pdfLabel="Export PDF"
+                onDownload={downloadVisibilityExport}
+              />
+              {pending > 0 ? (
+                <Button variant="outline" asChild>
+                  <Link to="/products?status=pending">
+                    Review pending ({pending})
+                  </Link>
+                </Button>
+              ) : (
+                <Button variant="outline" asChild>
+                  <Link to="/products">View products</Link>
+                </Button>
+              )}
+            </div>
           }
         />
 

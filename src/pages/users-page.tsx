@@ -4,11 +4,13 @@ import { Link } from 'react-router-dom';
 import { Link2, Plus, Search, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteUser, getUsers, updateUser } from '@/api/users';
+import { downloadUsersExport } from '@/api/export';
 import { getErrorMessage } from '@/api/client';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { AdminEmptyState } from '@/components/admin/admin-empty-state';
 import { AdminPageHeader } from '@/components/admin/admin-page-header';
 import { AdminPanel } from '@/components/admin/admin-detail-section';
+import { ExportDownloadButtons } from '@/components/admin/export-download-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -135,6 +137,17 @@ export function UsersPage() {
           description="View accounts, update profiles, and manage access."
           action={
             <div className="flex flex-wrap gap-2">
+              <ExportDownloadButtons
+                csvLabel="Download CSV"
+                pdfLabel="Download PDF"
+                onDownload={(format) =>
+                  downloadUsersExport({
+                    format,
+                    ...(search ? { search } : {}),
+                    ...(roleFilter !== 'ALL' ? { role: roleFilter } : {}),
+                  })
+                }
+              />
               <Button variant="outline" asChild>
                 <Link to="/users/assign">
                   <Link2 className="size-4" />
